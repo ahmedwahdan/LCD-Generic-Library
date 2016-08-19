@@ -548,10 +548,10 @@ END GROUP
 .debug_pubnames
  *(.debug_pubnames)
 
-.debug_info     0x00000000      0x7ef
+.debug_info     0x00000000      0x815
  *(.debug_info .gnu.linkonce.wi.*)
- .debug_info    0x00000000      0x590 LCD_Library.o
- .debug_info    0x00000590      0x25f main.o
+ .debug_info    0x00000000      0x5b6 LCD_Library.o
+ .debug_info    0x000005b6      0x25f main.o
 
 .debug_abbrev   0x00000000      0x3a4
  *(.debug_abbrev)
@@ -568,11 +568,11 @@ END GROUP
  .debug_frame   0x00000000       0xf4 LCD_Library.o
  .debug_frame   0x000000f4       0x24 main.o
 
-.debug_str      0x00000000      0x2de
+.debug_str      0x00000000      0x2d0
  *(.debug_str)
- .debug_str     0x00000000      0x295 LCD_Library.o
-                                0x2df (size before relaxing)
- .debug_str     0x00000295       0x49 main.o
+ .debug_str     0x00000000      0x287 LCD_Library.o
+                                0x2d1 (size before relaxing)
+ .debug_str     0x00000287       0x49 main.o
                                 0x1ed (size before relaxing)
 
 .debug_loc      0x00000000      0x2a1
