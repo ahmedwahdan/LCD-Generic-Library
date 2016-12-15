@@ -1,5 +1,5 @@
 /**************************************************
- 	Generic LCD Library source code
+ 	Generic LCD Library source code for AVR MCUs
 	auther : Eng: Ahmed Wahdan 
 	Email  : AWahdan@outlook.com
 	17/8/2016
