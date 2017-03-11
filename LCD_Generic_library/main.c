@@ -13,16 +13,17 @@
 int main(void)
 {
 
-	LCD_Initialization();
+	LCD_Initialization(DataBus4Bits_2Line_8dot, Cursor_Increment,Display_On_Cursor_OFF);
 	LCD_Write_String("Embedded");
-	LCD_Go_To_X_Y(LCD_ROW_2,LCD_POSITION_3);
+	LCD_Go_To_X_Y(LCD_Row_2, LCD_Column_3);
 	LCD_Write_String("Systems");
 	_delay_ms(1000);
-	LCD_Write_Command(LCD_SHIFT_RIGHT_CMD);
+	LCD_Write_Command(LCD_Display_Shift_Right);
 	_delay_ms(1000);
-	LCD_Write_Command(LCD_SHIFT_RIGHT_CMD);
+	LCD_Write_Command(LCD_Display_Shift_Left);
 	_delay_ms(1000);
-	LCD_Write_Command(LCD_CLEAR_CMD);
+	LCD_Write_Command(LCD_Clear);
+	LCD_Write_String("Embedded");
 	while(1)
 	{
 		

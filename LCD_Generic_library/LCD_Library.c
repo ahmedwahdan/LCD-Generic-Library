@@ -16,43 +16,48 @@
 /*********************************************************************************************************/
 void static LCD_READ()
 {
-	LCD_EN_PORT|=(1<<LCD_EN_PIN);        // set enable high to read
-	_delay_us(100U);
-	LCD_EN_PORT&=~(1<<LCD_EN_PIN);		// reset enable
-	_delay_ms(5U);     			// delay 5 ms 
+	/* Enable pulse for 1usec (500ns up to data sheet) */
+	LCD_EN_PORT|=(1<<LCD_EN_PIN);        
+	_delay_us(1U);
+	LCD_EN_PORT&=~(1<<LCD_EN_PIN);		
 }
 
 /**********************************************/
 
-void static LCD_Write_4bit_mode(char value)
+void static LCD_Write_4bit_mode(unsigned char value)
 {
-	if (value&0x80U)  {LCD_D7_PORT|=(1U<<LCD_D7_PIN);} else {LCD_D7_PORT&=~(1U<<LCD_D7_PIN);}
-	if (value&0x40U)  {LCD_D6_PORT|=(1U<<LCD_D6_PIN);} else {LCD_D6_PORT&=~(1U<<LCD_D6_PIN);}
-	if (value&0x20U)  {LCD_D5_PORT|=(1U<<LCD_D5_PIN);} else {LCD_D5_PORT&=~(1U<<LCD_D5_PIN);}
-	if (value&0x10U)  {LCD_D4_PORT|=(1U<<LCD_D4_PIN);} else {LCD_D4_PORT&=~(1U<<LCD_D4_PIN);}
+	if (value&(1U<<3))  {LCD_D7_PORT|=(1U<<LCD_D7_PIN);} else {LCD_D7_PORT&=~(1U<<LCD_D7_PIN);}
+	if (value&(1U<<2))  {LCD_D6_PORT|=(1U<<LCD_D6_PIN);} else {LCD_D6_PORT&=~(1U<<LCD_D6_PIN);}
+	if (value&(1U<<1))  {LCD_D5_PORT|=(1U<<LCD_D5_PIN);} else {LCD_D5_PORT&=~(1U<<LCD_D5_PIN);}
+	if (value&(1U<<0))  {LCD_D4_PORT|=(1U<<LCD_D4_PIN);} else {LCD_D4_PORT&=~(1U<<LCD_D4_PIN);}
 	LCD_READ();									   		  								 
-	if (value&0x08U)  {LCD_D7_PORT|=(1U<<LCD_D7_PIN);} else {LCD_D7_PORT&=~(1U<<LCD_D7_PIN);}
-	if (value&0x04U)  {LCD_D6_PORT|=(1U<<LCD_D6_PIN);} else {LCD_D6_PORT&=~(1U<<LCD_D6_PIN);}
-	if (value&0x02U)  {LCD_D5_PORT|=(1U<<LCD_D5_PIN);} else {LCD_D5_PORT&=~(1U<<LCD_D5_PIN);}
-	if (value&0x01U)  {LCD_D4_PORT|=(1U<<LCD_D4_PIN);} else {LCD_D4_PORT&=~(1U<<LCD_D4_PIN);}
-	LCD_READ();
 }
 	
 /**********************************************/
 
-void LCD_Write_Command(char command)
+void LCD_Write_Command(LCD_Commands_t  command)
 {
 	LCD_RS_PORT &=~(1U<<LCD_RS_PIN);
-	LCD_RW_PORT &=~(1U<<LCD_RW_PIN); // write command ( not generic)
-	LCD_Write_4bit_mode(command);
+	LCD_RW_PORT &=~(1U<<LCD_RW_PIN); 
+	LCD_Write_4bit_mode(((char)command)>>4);
+	LCD_Write_4bit_mode((char)command);
+	if (command == LCD_Clear || command == LCD_Return_Home) 
+	{
+		_delay_ms(3);
+	}
+	else
+	{
+		_delay_us(50);
+	}
+	
 }
 	
 /**********************************************/
 
-void LCD_Go_To_X_Y(unsigned char row,unsigned char position)
+void LCD_Go_To_X_Y(LCD_Row_t row,LCD_Column_t column)
 {
 
-	LCD_Write_Command((0x80U |(row<<6U))+position);
+	LCD_Write_Command((0x80U |((char)row<<6U))+column);
 
 }
 
@@ -62,7 +67,9 @@ void LCD_Write_Character(char  character)
 {
 	LCD_RW_PORT &=~(1U<<LCD_RW_PIN); // write command ( not generic)
 	LCD_RS_PORT |=(1U<<LCD_RS_PIN);
+	LCD_Write_4bit_mode(character>>4);
 	LCD_Write_4bit_mode(character);
+	_delay_us(50);
 }
 
 /**********************************************/
@@ -73,11 +80,11 @@ void LCD_Write_String(char  *pointer)
 		{
 			LCD_Write_Character(*pointer++);
 		}		
-	}
+}
 
 /**********************************************/
 
-void LCD_Write_float( float  float_value)
+void LCD_Write_float(float  float_value)
 {
 	long int vlaue = 0;
 	unsigned int x,y;
@@ -101,9 +108,8 @@ void LCD_Write_float( float  float_value)
 
 /**********************************************/
 
-void LCD_Initialization(void)
+void LCD_Initialization(Function_Set_t func_set,Entry_Mode_t entry_mode,Display_ON_OFF_t display_state)
 {
-	_delay_ms(15);
 	LCD_RS_DDR |=(1U<<LCD_RS_PIN);
 	LCD_RW_DDR |=(1U<<LCD_RW_PIN);
 	LCD_EN_DDR |=(1U<<LCD_EN_PIN);
@@ -112,12 +118,58 @@ void LCD_Initialization(void)
 	LCD_D5_DDR |=(1U<<LCD_D5_PIN);
 	LCD_D4_DDR |=(1U<<LCD_D4_PIN);
 	
-	LCD_Write_4bit_mode(0x33U);  /* Initialization */
-	LCD_Write_4bit_mode(0x32U);	/* Initialization */							
-	LCD_Write_4bit_mode(0x28U);	/* Function Set: 4-bit, 2 Line, 5x7 Dots */
-	LCD_Write_4bit_mode(0x0cU);	/* Display on ,cursor off */	
-	LCD_Write_4bit_mode(0x06U);	/* Entry mode (advanced cursor) */
-	LCD_Write_4bit_mode(0x01U);  /* Clear display , Cursor home */	
+	_delay_ms(20);
+	/*
+		Initialization steps:
+		1- Write 0x3 to the LCD
+		2- Delay more than 4.1 ms (5ms)
+		3- Write 0x3 to the LCD
+		4- Delay more than 100 us (150 us) 
+		5- Write 0x3 to the LCD
+		6- Write 0x2 to the LCD
+		7- Write set function value (DL - N - F)
+		8- Display off
+		9- Display Clear
+		10-Entry Mode (cursor shift/ Display shift) 
+		11-Display on
+	*/
+	
+	/* 1- Write 0x3 to the LCD */
+	LCD_Write_4bit_mode(0x3U);
+	/* 2- Delay more than 4.1 ms (5ms) */
+	_delay_ms(5);  
+	/* 3- Write 0x3 to the LCD */
+	LCD_Write_4bit_mode(0x3U);
+	/* 4- Delay more than 100 us (150 us)  */
+	_delay_us(150);
+	/* 5- Write 0x3 to the LCD */
+	LCD_Write_4bit_mode(0x3U);
+	_delay_us(150);
+	/* 6- Write 0x2 to the LCD */
+	LCD_Write_4bit_mode(0x2U);
+	_delay_us(150);
+	/* 7- Write set function value (DL - N - F) */
+	LCD_Write_4bit_mode(func_set>>4);
+	LCD_Write_4bit_mode(func_set);
+	_delay_us(50);
+	/* 8- Display off */
+	LCD_Write_4bit_mode(((char)Display_OFF)>>4);
+	LCD_Write_4bit_mode((char)Display_OFF);
+	_delay_us(50);
+	/* 9- Display Clear */
+	LCD_Write_4bit_mode(((char)LCD_Clear)>>4);
+	LCD_Write_4bit_mode((char)LCD_Clear);
+	_delay_ms(3);
+	/* 10-Entry Mode (cursor shift/ Display shift) */ 
+	LCD_Write_4bit_mode(((char)entry_mode)>>4);
+	LCD_Write_4bit_mode((char)entry_mode);
+	_delay_us(50);
+	/* 11-Display on */
+	LCD_Write_4bit_mode(((char)display_state)>>4);
+	LCD_Write_4bit_mode((char)display_state);
+	_delay_us(50);
+	
+
 }
 
 /*************************************************************************************************************/
